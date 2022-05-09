@@ -18,6 +18,10 @@
 #define CLK_PER 4000000
 #define I2C_SCL_FREQ 100000 //standard mode
 
+#define SDA_PIN 2
+#define SCL_PIN 3
+
+
 //
 #define TWI1_BAUD(F_SCL, T_RISE) ( ((float)CLK_PER/(2*(float)F_SCL)) - (5 + ( ((float)CLK_PER * (float)T_RISE) /2) ) )
 
@@ -56,32 +60,48 @@ static void i2c_masterNACKaction(void);
 //static void i2c_slaveNACKaction(void);
 
 
+	 //så dataene som skal leses i i2c er volatile?
+	 volatile uint8_t statusData = 0;
+	 volatile uint8_t humidityUpperDatabyte = 0;
+	 volatile uint8_t humidityMiddleDatabyte = 0;
+	 volatile uint8_t humidityLowerandTempUpperDatabyte = 0;
+	 volatile uint8_t tempMiddleDatabyte = 0;
+	 volatile uint8_t tempLowerDatabyte = 0;
+	 //volatile uint32_t humidity20BitValue = 0;
+	 volatile uint32_t temp20BitValue = 0;
+	 float temperature = 0;  //vet ikke hvor stort det må være for regnestykke
+
+
 
 int main(void){
 	//settte til inputs?
+	PORTF.DIR &= ~(1 << SDA_PIN);
+	PORTF.DIR &= ~(1 << SCL_PIN);
+	PORTF.PIN2CTRL |= (1 << PORT_PULLUPEN_bp);
+	PORTF.PIN3CTRL |= (1 << PORT_PULLUPEN_bp);
+	//kan bruke twi0 på pa2 og pa3??
 	
-	 //så dataene som skal leses i i2c er volatile?
-	volatile uint8_t statusData = 0;
-	volatile uint8_t humidityUpperDatabyte = 0;
-	volatile uint8_t humidityMiddleDatabyte = 0;
-	volatile uint8_t humidityLowerandTempUpperDatabyte = 0;
-	volatile uint8_t tempMiddleDatabyte = 0; 
-	volatile uint8_t tempLowerDatabyte = 0;
-	//volatile uint32_t humidity20BitValue = 0;
-	volatile uint32_t temp20BitValue = 0;
-	 float temperature = 0;  //vet ikke hvor stort det må være for regnestykke
+
 	
     i2c_init(); //så baud rate og det der sendes en gang*
     while (1)  { 
 		//skrive først i stedet for å kunne sende kommandoer
+		_delay_ms(20); //ATH10 trenger 20 ms før kontakt fra masteren etter idle-bussen
 		i2c_transmitAddrPacket(TEMP_ADDRESS, I2C_DIRECTION_BIT_WRITE);
-		i2c_transmitDataPacket(0xe1); //initialisere temperatursensoren 
+		//i2c_transmitDataPacket(0xe1); //initialisere temperatursensoren 
 		i2c_transmitDataPacket(0xac); //ber tempsensoren om å beregne fuktighet og temperatur
 		_delay_ms(75);
+		i2c_transmitDataPacket(0x33); //data0
+		i2c_transmitDataPacket(0x0); //data1
+		i2c_sendMasterCommand(~TWI_MCMD_RECVTRANS_gc);  //mellom hver?
+		i2c_masterNACKaction(); //blir nack før den avsluttes
+		i2c_sendMasterCommand(TWI_MCMD_STOP_gc);
+		
+		
 		
 		//endrer retningen 
-		i2c_transmitAddrPacket(TEMP_ADDRESS, I2C_DIRECTION_BIT_READ);
-		statusData = i2c_receiveDataPacket();
+		i2c_transmitAddrPacket(TEMP_ADDRESS, I2C_DIRECTION_BIT_READ); //tilsvarer initialization biten
+		statusData = i2c_receiveDataPacket(); //stopper her !!
 		i2c_masterACKaction();
 		
 		i2c_sendMasterCommand(TWI_MCMD_RECVTRANS_gc);  //mellom hver?
@@ -109,10 +129,10 @@ int main(void){
 		//sette sammen og dele opp verdiene
 
 		//uint8_t humidityLowerDatabyte = humidityLowerandTempUpperDatabyte & 00001111;
-	uint8_t tempUpperDatabyte = humidityLowerandTempUpperDatabyte & 11110000;
-	tempUpperDatabyte = (tempUpperDatabyte >> 4);
-	temp20BitValue = (tempUpperDatabyte << 8) | tempMiddleDatabyte;
-	temp20BitValue = (temp20BitValue << 8) | tempLowerDatabyte;
+		uint8_t tempUpperDatabyte = humidityLowerandTempUpperDatabyte & 11110000;
+		tempUpperDatabyte = (tempUpperDatabyte >> 4);
+		temp20BitValue = (tempUpperDatabyte << 8) | tempMiddleDatabyte;
+		temp20BitValue = (temp20BitValue << 8) | tempLowerDatabyte;
 		temperature = TEMP_CONVERTER(temp20BitValue);
 		_delay_ms(500);
 		
