@@ -39,25 +39,15 @@
 #define I2C_SLAVE_RESPONSE_ACKED (!(TWI_RXACK_bm & TWI1_MSTATUS))
 #define I2C_DATA_RECEIVED (TWI_RIF_bm & TWI1_MSTATUS) //kan bruke flaggene uten interrupts. det finnes ikke RIF for i SSTATUS. hva betyr??
 
-#define I2C_MASTER_RESPONSE_ACKED (!(TWI_RXACK_bm & TWI1_SSTATUS))
-
 #define TEMP_CONVERTER(SIGNAL) ((SIGNAL/1048576) * 200 - 50) 
 
 static void i2c_init(void);
 static void i2c_transmitAddrPacket(uint8_t slaveAddress, uint8_t directionBit);
-
 static uint8_t i2c_receiveDataPacket(void);
-//static uint8_t i2c_
 static void i2c_transmitDataPacket(uint8_t data);
-//en for å sende datapakker også
 static void i2c_sendMasterCommand(uint8_t masterCommand);
-//en for at slaven også kan sende kommandoer, litt andre da
 static void i2c_masterACKaction(void);
 static void i2c_masterNACKaction(void);
-//de to finnes for slave også
-
-//static void i2c_slaveACKaction(void);
-//static void i2c_slaveNACKaction(void);
 
 
 	 //så dataene som skal leses i i2c er volatile?
@@ -74,17 +64,19 @@ static void i2c_masterNACKaction(void);
 
 
 int main(void){
-	//settte til inputs?
-	PORTF.DIR &= ~(1 << SDA_PIN);
-	PORTF.DIR &= ~(1 << SCL_PIN);
+	//sette til inputs? outputs nå'
+	
+	PORTMUX_TWIROUTEA |= PORTMUX_TWI1_DEFAULT_gc;
+	
+	PORTF.DIR |= (1 << SDA_PIN);
+	PORTF.DIR |= (1 << SCL_PIN);
 	PORTF.PIN2CTRL |= (1 << PORT_PULLUPEN_bp);
 	PORTF.PIN3CTRL |= (1 << PORT_PULLUPEN_bp);
+	
 	//kan bruke twi0 på pa2 og pa3??
 	
-
-	
-    i2c_init(); //så baud rate og det der sendes en gang*
     while (1)  { 
+		 i2c_init(); //så baud rate og det der sendes en gang*. eller sende flere?
 		//skrive først i stedet for å kunne sende kommandoer
 		_delay_ms(20); //ATH10 trenger 20 ms før kontakt fra masteren etter idle-bussen
 		i2c_transmitAddrPacket(TEMP_ADDRESS, I2C_DIRECTION_BIT_WRITE);
@@ -96,7 +88,6 @@ int main(void){
 		i2c_sendMasterCommand(~TWI_MCMD_RECVTRANS_gc);  //mellom hver?
 		i2c_masterNACKaction(); //blir nack før den avsluttes
 		i2c_sendMasterCommand(TWI_MCMD_STOP_gc);
-		
 		
 		
 		//endrer retningen 
@@ -139,10 +130,13 @@ int main(void){
     }
 }
 
-//eget datasheet i tillegg til greia, ikke bare kommuniksjonen
 
 
 static void i2c_init(void){
+	TWI1_CTRLA |= (1 << TWI_SDASETUP_8CYC_gc);
+	TWI1_CTRLA |= (1 << TWI_SDAHOLD_300NS_gc);
+	TWI1_CTRLA &= ~(1 << TWI_FMPEN_bp);
+	
 	TWI1_MBAUD = (uint8_t)TWI1_BAUD(I2C_SCL_FREQ, 0.00025);
 	TWI1_MCTRLA = TWI_ENABLE_bm;
 	TWI1_MSTATUS = TWI_BUSSTATE_IDLE_gc;
@@ -154,9 +148,6 @@ static void i2c_transmitAddrPacket(uint8_t slaveAddress, uint8_t directionBit){
 		;
 	}
 }
-
-//for den motsatte av denne må det også være en ACK-sjekk
-
 
 static void i2c_transmitDataPacket(uint8_t data){
 	TWI1_MDATA |= data;
@@ -171,10 +162,9 @@ static uint8_t i2c_receiveDataPacket(void){
 	while(!I2C_DATA_RECEIVED){
 		;
 		}
-		return TWI1.MDATA; //hvorfor Mdata?
+		return TWI1.MDATA; 
 }
 
-//må være en sjekk for motsatt av denne også
 
 static void i2c_sendMasterCommand(uint8_t masterCommand){
 	TWI1_MCTRLB |= masterCommand;
@@ -188,10 +178,3 @@ static void i2c_masterNACKaction(void){
 	TWI1_MCTRLB	|= TWI_ACKACT_bm;
 }
 
-//static void i2c_slaveACKaction(void){
-	
-//}
-
-//static void i2c_slaveNACKaction(void){
-	
-//}
