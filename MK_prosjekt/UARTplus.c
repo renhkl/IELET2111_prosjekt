@@ -238,16 +238,24 @@ void EEPROM_UpdateAll(void){
 	my_eeprom_update_char(fan_7_EEPROM_adr, SpeedToEEPROMch[7]);
 	TxBuffer_StringWrite("Saving done");
 }
-void EEPROM_FaultDetect(void){
+void EEPROM_CalcValue(void){
 	for (int i = 0; i<=7; i++)
 	{
 		SpeedToEEPROMch[i] = Tacho_filter(i);	//Reading the rpm value for the tachometer
 		
-		if (SpeedFromEEPROMch[i] != 0) //Check for 0 value
+		if (SpeedFromEEPROMch[i] != 0) //Check for 0 value (after reset)
 		{
 			SpeedToEEPROMch[i] = ((19*SpeedFromEEPROMch[i]/20) + (SpeedToEEPROMch[i]/20));	//Calculating new value for EEPROM
-			
-			if ((SpeedFromEEPROMch[i]*0.99) > SpeedToEEPROMch[i])	//Value diffrence to big | fault detected
+		}
+	}
+}
+
+void EEPROM_FaultDetect(void){
+	for (int i = 0; i<=7; i++)
+	{	
+		if (SpeedFromEEPROMch[i] != 0) //Check for 0 value (after reset)
+		{	
+			if ((SpeedFromEEPROMch[i]*TrendDataFaultPercentage) > SpeedToEEPROMch[i])	//Value diffrence to big | fault detected
 			{
 				TxBuffer_StringWrite("Fault predicted in fan ");
 				TxBuffer_IntWrite(TxBuffer, i);

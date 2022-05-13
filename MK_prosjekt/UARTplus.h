@@ -52,6 +52,9 @@
 #define FALSE 0
 #define TRUE 1
 
+//Trend data prediction
+#define TrendDataFaultPercentage 99
+
 //Prototypes
 //Initialization
 void UART3_init(long bps);
