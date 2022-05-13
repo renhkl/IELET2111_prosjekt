@@ -25,27 +25,7 @@ int speedch7 = 0;
 //Speed variables | For trend data
 uint16_t SpeedFromEEPROMch[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 uint16_t SpeedToEEPROMch[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-
-/*
-uint16_t SpeedToEEPROMch0 = 0;
-uint16_t SpeedToEEPROMch1 = 0;
-uint16_t SpeedToEEPROMch2 = 0;
-uint16_t SpeedToEEPROMch3 = 0;
-uint16_t SpeedToEEPROMch4 = 0;
-uint16_t SpeedToEEPROMch5 = 0;
-uint16_t SpeedToEEPROMch6 = 0;
-uint16_t SpeedToEEPROMch7 = 0;
-
-uint16_t SpeedFromEEPROMch0 = 0;
-uint16_t SpeedFromEEPROMch1 = 0;
-uint16_t SpeedFromEEPROMch2 = 0;
-uint16_t SpeedFromEEPROMch3 = 0;
-uint16_t SpeedFromEEPROMch4 = 0;
-uint16_t SpeedFromEEPROMch5 = 0;
-uint16_t SpeedFromEEPROMch6 = 0;
-uint16_t SpeedFromEEPROMch7 = 0;
-*/
-
+char SpeedArr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 //Global variables
 //Volatile variables (=variables that can suddenly change from for example interrupt) N.B. will not be optimized by the compiler
 volatile uint8_t EchoON = ~0; //Echo on, for toggling the echo
@@ -62,7 +42,7 @@ uint8_t RingbufferFull = 0;			 //Buffer full flag
 char TxBuffer[TxBufferLength]; //Buffer for intermediate storage of Tx-data | size: TxBufferLength
 char ProcessedBuffer[MaxWordLength + 1]; //Adds place for "stop-bit" (Null-charachter)
 
-const char commandArray[NoOfCommands][MaxCommandLength] = {"all","echo","read","fan","help","save","reset_eeprom","trend_data"};
+const char commandArray[NoOfCommands][MaxCommandLength] = {"all","echo","read","fan","help","save","reseteeprom","trenddata"};
 enum commands{commandAll=1,commandEcho,commandRead,commandFanControll,commandHelp,commandSave,commandResetEEPROM,commandTrendData};
 int mainmenu  = 1;
 void UART_MENU(void){
@@ -86,7 +66,7 @@ void UART_MENU(void){
 						AllOFF();
 						break;
 					}
-					TxBuffer_StringWrite(TxBuffer,"All command with incorrect syntax");
+					TxBuffer_StringWrite("All command with incorrect syntax");
 					UART_NewLine();
 				}
 				break;
@@ -103,7 +83,7 @@ void UART_MENU(void){
 
 				case commandRead:
 				if (ProcessWord() == 0){
-					TxBuffer_StringWrite(TxBuffer, "Read command with no arguments");
+					TxBuffer_StringWrite("Read command with no arguments");
 					}else{
 					if(strcmp(ProcessedBuffer, "0") == 0){
 						UART_ReadChannel(0);
@@ -142,7 +122,7 @@ void UART_MENU(void){
 						break;
 					}
 					else{
-						TxBuffer_StringWrite(TxBuffer,"Read with incorrect syntax");
+						TxBuffer_StringWrite("Read with incorrect syntax");
 						UART_NewLine();
 					}
 				}
@@ -150,13 +130,14 @@ void UART_MENU(void){
 				
 				case commandFanControll:
 				if (ProcessWord() == 0){
-					TxBuffer_StringWrite(TxBuffer,"Fan command with no arguments");
+					TxBuffer_StringWrite("Fan command with no arguments");
 					}else{
 					
 					if(strcmp(ProcessedBuffer, "0") == 0){
 						speedch0 = UART_FanSpeedSet();
 						AnalogWrite(0, speedch0);
 						TxBuffer_IntWrite(TxBuffer, speedch0);
+						SpeedArr[0] = speedch0;
 						break;
 					}
 					else if(strcmp(ProcessedBuffer, "1") == 0){
@@ -200,123 +181,141 @@ void UART_MENU(void){
 						AnalogWrite(7, speedch7);
 						TxBuffer_IntWrite(TxBuffer, speedch7);
 						break;
-					}
-					else if(strcmp(ProcessedBuffer, "all") == 0){
-					
-						break;
 						}else{
 						
-						strcpy(TxBuffer,"Fan with incorrect syntax");
-						UART_SendBuffer();
+						TxBuffer_StringWrite("Fan with incorrect syntax");
 						UART_NewLine();
 					}
 				}
 				break;
 				
 				case commandHelp:
-				
+				UART_HelpMenu();
 				break;
 				
 				case commandSave:
-				//Turns the fans up to max speed
-				AllON();
-				
-				UART_NewLine();
-				
-				//Read RPM values from trend data in EEPROM
-				SpeedFromEEPROMch[0] = my_eeprom_read_char(fan_0_EEPROM_adr);
-				SpeedFromEEPROMch[1] = my_eeprom_read_char(fan_1_EEPROM_adr);
-				SpeedFromEEPROMch[2] = my_eeprom_read_char(fan_2_EEPROM_adr);
-				SpeedFromEEPROMch[3] = my_eeprom_read_char(fan_3_EEPROM_adr);
-				SpeedFromEEPROMch[4] = my_eeprom_read_char(fan_4_EEPROM_adr);
-				SpeedFromEEPROMch[5] = my_eeprom_read_char(fan_5_EEPROM_adr);
-				SpeedFromEEPROMch[6] = my_eeprom_read_char(fan_6_EEPROM_adr);
-				SpeedFromEEPROMch[7] = my_eeprom_read_char(fan_7_EEPROM_adr);
-				
-				//
-				for (int i = 0; i<=7; i++)
-				{
-					SpeedToEEPROMch[i] = Tacho_filter(i);	//Reading the rpm value for the tachometer
-					
-					if (SpeedFromEEPROMch[i] != 0)
-					{
-						SpeedToEEPROMch[i] = ((19*SpeedFromEEPROMch[i]/20) + (SpeedToEEPROMch[i]/20));	//Calculating new value for EEPROM
-						
-						if ((SpeedFromEEPROMch[i]*0.99) > SpeedToEEPROMch[i])	//Predicting fault in fan
-						{
-							TxBuffer_StringWrite(TxBuffer,"Fault predicted in fan ");
-							TxBuffer_IntWrite(TxBuffer, i);
-							UART_NewLine();
-						}
-					}
-				}
-				
-				//Updates values to EEPROM
-				my_eeprom_update_char(fan_0_EEPROM_adr, SpeedToEEPROMch[0]);
-				my_eeprom_update_char(fan_1_EEPROM_adr, SpeedToEEPROMch[1]);
-				my_eeprom_update_char(fan_2_EEPROM_adr, SpeedToEEPROMch[2]);
-				my_eeprom_update_char(fan_3_EEPROM_adr, SpeedToEEPROMch[3]);
-				my_eeprom_update_char(fan_4_EEPROM_adr, SpeedToEEPROMch[4]);
-				my_eeprom_update_char(fan_5_EEPROM_adr, SpeedToEEPROMch[5]);
-				my_eeprom_update_char(fan_6_EEPROM_adr, SpeedToEEPROMch[6]);
-				my_eeprom_update_char(fan_7_EEPROM_adr, SpeedToEEPROMch[7]);
-				TxBuffer_StringWrite(TxBuffer,"Saving done");
+				EEPROM_SaveFanStatus();
 				break;
 				
 				case commandResetEEPROM:
-				//Sets value to zero at every EEPROM adresse
-				my_eeprom_update_char(fan_0_EEPROM_adr, 0);
-				my_eeprom_update_char(fan_1_EEPROM_adr, 0);
-				my_eeprom_update_char(fan_2_EEPROM_adr, 0);
-				my_eeprom_update_char(fan_3_EEPROM_adr, 0);
-				my_eeprom_update_char(fan_4_EEPROM_adr, 0);
-				my_eeprom_update_char(fan_5_EEPROM_adr, 0);
-				my_eeprom_update_char(fan_6_EEPROM_adr, 0);
-				my_eeprom_update_char(fan_7_EEPROM_adr, 0);
-				
-				TxBuffer_StringWrite(TxBuffer, "EEPROM has been reset");
+				ResetEEPROM();
 				break;
 				
 				case commandTrendData:
-				//Read RPM values from trend data in EEPROM
-				SpeedFromEEPROMch[0] = my_eeprom_read_char(fan_0_EEPROM_adr);
-				SpeedFromEEPROMch[1] = my_eeprom_read_char(fan_1_EEPROM_adr);
-				SpeedFromEEPROMch[2] = my_eeprom_read_char(fan_2_EEPROM_adr);
-				SpeedFromEEPROMch[3] = my_eeprom_read_char(fan_3_EEPROM_adr);
-				SpeedFromEEPROMch[4] = my_eeprom_read_char(fan_4_EEPROM_adr);
-				SpeedFromEEPROMch[5] = my_eeprom_read_char(fan_5_EEPROM_adr);
-				SpeedFromEEPROMch[6] = my_eeprom_read_char(fan_6_EEPROM_adr);
-				SpeedFromEEPROMch[7] = my_eeprom_read_char(fan_7_EEPROM_adr);
-				
-				//Presenting the data in the UART menu
-				UART_NewLine();
-				for (int i = 0; i<=7; i++)
-				{
-					TxBuffer_StringWrite(TxBuffer, "Trend data for fan ");
-					TxBuffer_IntWrite(TxBuffer, i);
-					TxBuffer_StringWrite(TxBuffer, ": ");
-					TxBuffer_IntWrite(TxBuffer, SpeedFromEEPROMch[i]);
-					UART_NewLine();
-				}
+				UART_WriteTrendData();
 				break;
 				
 				default:
-				TxBuffer_StringWrite(TxBuffer, "Unknown command!");
+				TxBuffer_StringWrite("Unknown command!");
 			}
 		}
+		
 		ResetSHell();
 	}
 	
 }
-void UART_HelpMenu(void){
-	strcpy(TxBuffer,"Available commands:");
-	UART_SendBuffer();
+void EEPROM_SaveFanStatus(void){
+	//Turns the fans up to max speed before updating speed data
+	AllON();
+	
 	UART_NewLine();
-	strcpy(TxBuffer,"All, command for toggle ");
-	UART_SendBuffer();
-	UART_NewLine();
+	
+	EEPROM_ReadAll();
+	
+	EEPROM_FaultDetect();
+	
+	EEPROM_UpdateAll();
 }
-void UART_Echo(char recvbyte){	
+void EEPROM_UpdateAll(void){
+	//Updates values to EEPROM
+	my_eeprom_update_char(fan_0_EEPROM_adr, SpeedToEEPROMch[0]);
+	my_eeprom_update_char(fan_1_EEPROM_adr, SpeedToEEPROMch[1]);
+	my_eeprom_update_char(fan_2_EEPROM_adr, SpeedToEEPROMch[2]);
+	my_eeprom_update_char(fan_3_EEPROM_adr, SpeedToEEPROMch[3]);
+	my_eeprom_update_char(fan_4_EEPROM_adr, SpeedToEEPROMch[4]);
+	my_eeprom_update_char(fan_5_EEPROM_adr, SpeedToEEPROMch[5]);
+	my_eeprom_update_char(fan_6_EEPROM_adr, SpeedToEEPROMch[6]);
+	my_eeprom_update_char(fan_7_EEPROM_adr, SpeedToEEPROMch[7]);
+	TxBuffer_StringWrite("Saving done");
+}
+void EEPROM_FaultDetect(void){
+	for (int i = 0; i<=7; i++)
+	{
+		SpeedToEEPROMch[i] = Tacho_filter(i);	//Reading the rpm value for the tachometer
+		
+		if (SpeedFromEEPROMch[i] != 0) //Check for 0 value
+		{
+			SpeedToEEPROMch[i] = ((19*SpeedFromEEPROMch[i]/20) + (SpeedToEEPROMch[i]/20));	//Calculating new value for EEPROM
+			
+			if ((SpeedFromEEPROMch[i]*0.99) > SpeedToEEPROMch[i])	//Value diffrence to big | fault detected
+			{
+				TxBuffer_StringWrite("Fault predicted in fan ");
+				TxBuffer_IntWrite(TxBuffer, i);
+				UART_NewLine();
+			}
+		}
+	}
+}
+void ResetEEPROM(void){
+	//Sets value to zero at every EEPROM adresse
+	my_eeprom_update_char(fan_0_EEPROM_adr, 0);
+	my_eeprom_update_char(fan_1_EEPROM_adr, 0);
+	my_eeprom_update_char(fan_2_EEPROM_adr, 0);
+	my_eeprom_update_char(fan_3_EEPROM_adr, 0);
+	my_eeprom_update_char(fan_4_EEPROM_adr, 0);
+	my_eeprom_update_char(fan_5_EEPROM_adr, 0);
+	my_eeprom_update_char(fan_6_EEPROM_adr, 0);
+	my_eeprom_update_char(fan_7_EEPROM_adr, 0);
+	
+	TxBuffer_StringWrite("EEPROM has been reset");
+}
+void UART_WriteTrendData(void){
+	EEPROM_ReadAll();
+	//Presenting the data in the UART menu
+	UART_NewLine();
+	TxBuffer_StringWrite("TREND DATA:");
+	UART_NewLine();
+	UART_NewLine();
+	for (int i = 0; i<=7; i++)
+	{
+		TxBuffer_StringWrite("Trend data for fan ");
+		TxBuffer_IntWrite(TxBuffer, i);
+		TxBuffer_StringWrite(": ");
+		TxBuffer_IntWrite(TxBuffer, SpeedFromEEPROMch[i]);
+		UART_NewLine();
+	}
+}
+void EEPROM_ReadAll(void){
+	//Read RPM values from trend data in EEPROM
+	SpeedFromEEPROMch[0] = my_eeprom_read_char(fan_0_EEPROM_adr);
+	SpeedFromEEPROMch[1] = my_eeprom_read_char(fan_1_EEPROM_adr);
+	SpeedFromEEPROMch[2] = my_eeprom_read_char(fan_2_EEPROM_adr);
+	SpeedFromEEPROMch[3] = my_eeprom_read_char(fan_3_EEPROM_adr);
+	SpeedFromEEPROMch[4] = my_eeprom_read_char(fan_4_EEPROM_adr);
+	SpeedFromEEPROMch[5] = my_eeprom_read_char(fan_5_EEPROM_adr);
+	SpeedFromEEPROMch[6] = my_eeprom_read_char(fan_6_EEPROM_adr);
+	SpeedFromEEPROMch[7] = my_eeprom_read_char(fan_7_EEPROM_adr);
+}
+void UART_HelpMenu(void){
+	if (ProcessWord() == 0){
+		TxBuffer_StringWrite("Available commands:");
+		UART_NewLine();
+		TxBuffer_StringWrite("all <on/off>");
+		UART_NewLine();
+		TxBuffer_StringWrite("read <fan channel>");
+		UART_NewLine();
+		TxBuffer_StringWrite("echo <on/off> no syntax = is echo on or off?");
+		UART_NewLine();
+		TxBuffer_StringWrite("reseteeprom, no syntax");
+		UART_NewLine();
+		TxBuffer_StringWrite("save, no syntax");
+		UART_NewLine();
+		TxBuffer_StringWrite("trenddata, no syntax");
+		} else {
+		TxBuffer_StringWrite("help, wrong syntax");
+	}
+}
+void UART_Echo(char recvbyte){
 	
 	if(((recvbyte > 31) && (recvbyte != backspace127)) || (recvbyte == Bell) || (recvbyte == CR) || (recvbyte == LF)){
 		if(RingbufferFull){
@@ -324,15 +323,13 @@ void UART_Echo(char recvbyte){
 			} else {
 			UART_TX_BUFFER = recvbyte;							//Puts the received byte in the tx-buffer
 		}
-		NoBackspace = 0;										//Lower the NoBackspace FLag
+		NoBackspace = 0;										//Lower the NoBackspace FLag, since something is written
 	}
 	if((recvbyte == backspace) || (recvbyte == backspace127)) { //Check if backspace is pressed
 		if(RingbufferTail == RingbufferHead){				    //Check if buffer is empty
 			if(NoBackspace == 0){								//Check if NoBackspace flag is low, if so raise it
 				NoBackspace = 1;                                //The flag is to disable the user from using backspace
 				UART_TX_BUFFER = recvbyte;						//Sends the received byte since | backspace
-				} else {
-				UART_TX_BUFFER = Bell;
 			}
 			} else {
 			UART_TX_BUFFER = recvbyte;							//Sends the recieved byte, thats not the ones checked above
@@ -360,13 +357,13 @@ void AllON(void){
 	for(int i = 0; i < 8; i++){
 		AnalogWrite(i,0);
 	}
-	TxBuffer_StringWrite(TxBuffer,"PWM off all fans, fans full power");
+	TxBuffer_StringWrite("PWM off all fans, fans full power");
 }
 void AllOFF(void){
 	for(int j = 0; j < 8; j++){
 		AnalogWrite(j,100);
 	}
-	TxBuffer_StringWrite(TxBuffer,"PWM fully on all fans, fans off");
+	TxBuffer_StringWrite("PWM fully on all fans, fans off");
 }
 
 //Function for processing the characters, so its easy to check for correct commands
@@ -380,11 +377,11 @@ char ProcessWord(void){
 		if(RxChar > 32){
 			ProcessedBuffer[LoopNo] = RxChar; //Puts the characters in a buffer for the Processed Characters
 			} else {
-			ProcessedBuffer[LoopNo] = 0; //Top ups the buffer with a "Stop-bit" (Null-character)
+			ProcessedBuffer[LoopNo] = 0; //Tops up the buffer with a "Stop-bit" (Null-character)
 			break; //exit loop
 		}
 	}
-	ProcessedBuffer[MaxWordLength] = 0; //Make sure the end has an null character
+	
 	return 1; //Process done
 }
 
@@ -475,12 +472,6 @@ void UART_SendBuffer(void){
 			return;					 //Return out of loop, when the "stop-bit" comes
 		}
 	}
-}
-
-//Change internal oscillator to 16MHz
-void Osc_init(void){
-	CCP = 0xD8; //Unlock protected registers, to allow change of internal oscillator
-	CLKCTRL_OSCHFCTRLA = (3 << CLKCTRL_FREQSEL0_bp ); //Set internal clock oscillator to 16MHz
 }
 
 int UART_FanSpeedSet(){
@@ -608,18 +599,13 @@ int NumCheck(int num){
 }
 void UART_ReadChannel(char ch){
 	uint32_t tacho = 0;
-	int count = 0;
+	uint8_t count = 0;
 	int left_shift = 0;
 	int right_shift = 0;
 	
 	tacho = Tacho_filter(ch);
 
-	//Function for finding the length of an integer
-	while(tacho!=0) //Run until tacho value is zero
-	{
-		tacho=tacho/10; //divide until tacho is 0,....
-		count++;		//Count for each round to get the length
-	}
+	count = LengthofInt(tacho);
 	
 	//Title
 	if(count == 0){
@@ -690,6 +676,16 @@ void UART_ReadChannel(char ch){
 	
 }
 
+uint8_t LengthofInt(uint32_t tacho){
+	//Function for finding the length of an integer
+	int count = 0;
+	while(tacho!=0) //Run until tacho value is zero
+	{
+		tacho=tacho/10; //divide until tacho is 0,....
+		count++;		//Count for each round to get the length
+	}
+	return count;
+}
 void UART_ReadAll(void){
 	//Title
 	UART_TitleAll();
@@ -716,7 +712,7 @@ void UART_Row(char row, char numofsamples){
 		UART_SendBuffer();
 	}
 	UART_NewLine();
-	row = row*5-(row-1);
+	row = row*5-(row);
 	for(int ch = 0+row; ch <= 3+row; ch++){
 		
 		strcpy(TxBuffer,"Channel ");
@@ -753,9 +749,8 @@ int Tacho_filter(char ch){ //Need too "filter" out the first value since the fir
 	return filter_val;
 }
 
-
 //UART3 setup
-void UART3_init(void){
+void UART3_init(long bps){
 	/*Calculating the baudrate from the formula in datasheet.
 	The register is 16 bit therfore uint16_t*/
 	const uint16_t BAUD_rate = (uint16_t) (F_CPU*64/(16*UART_bps));
@@ -781,7 +776,7 @@ void UART3_init(void){
 	USART3.CTRLD = USART_ABW_WDW0_gc;
 }
 
-void ISR_Func(void){
+void UART_ISR(void){
 	uint8_t recvbyte = UART_RX_BUFFER;
 	static uint8_t lastbyte = 0;			//Static does that the variable not initialize more then one time
 	switch(recvbyte){						//Switch case for checking the incoming for bytes
@@ -805,18 +800,14 @@ void ISR_Func(void){
 
 
 
-void TxBuffer_StringWrite(char* buf, char* str){
-	strcpy(buf,str);
+void TxBuffer_StringWrite(char* str){
+	strcpy(TxBuffer,str);
 	UART_SendBuffer();
 }
 
 void TxBuffer_IntWrite(char* buf, int data){
 	sprintf(buf,"%u",data);
 	UART_SendBuffer();
-}
-
-void Buffer_init(void){
-	RxBuffer[0] = 0; //Setting stopbit of Rxbuffer
 }
 
 void EchoToggle(void){

@@ -5,29 +5,23 @@
 * Author : Idar Evenstad
 */
 
-#include <avr/interrupt.h>
-#include "UARTplus.h"
-#include "AVR_Analog_RW.h"
+#include "SystemRTCandClk.h"
 
-
-//char TxBuffer[24];
+char TxBuffer[24];
 int main(void){
-	Buffer_init(); //Sets the buffer for UART Menu
-	//PWM_init(); //PWM write init | Initialization of TCA clock
-	Osc_init(); //Initialize Internal 16MHz Oscillator clock
-	UART3_init(); //Initialize UART
-	TCB0_init(); //Initialize TCB0 for measuring frequency
-	
-	sei(); //Global interrupt enable
+	System_init();
 	while (1)
 	{
 		UART_MENU();
 		
 	}
-
 }
 
-//Interrupt for the rx
+ISR(RTC_CNT_vect){
+	RTC.INTFLAGS = RTC_OVF_bm;
+	ISR_TWI();
+}
+
 ISR(USART3_RXC_vect){
-	ISR_Func();
+	UART_ISR();
 }

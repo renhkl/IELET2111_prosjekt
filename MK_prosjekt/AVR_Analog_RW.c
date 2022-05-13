@@ -25,37 +25,37 @@ uint16_t AnalogRead(char port){
 //Function for analogwrite to pin with duty 0 - 100%
 void AnalogWrite(char ch, char duty){
 	if (ch == 0){
-		TCA0.SPLIT.LCMP2 = dutycalc(duty);
-		PORTA.DIR |= PIN2_bm;
+		TCA0.SPLIT.LCMP0 = dutycalc(duty);
+		PORTD.DIR |= PD0;
 	}
 	if (ch == 1){
-		TCA0.SPLIT.HCMP0 = dutycalc(duty);
-		PORTA.DIR |= PIN3_bm;
+		TCA0.SPLIT.LCMP1 = dutycalc(duty);
+		PORTD.DIR |= PD1;
 	}
 	if (ch == 2){
-		TCA0.SPLIT.HCMP1 = dutycalc(duty);
-		PORTA.DIR |= PIN4_bm;
+		TCA0.SPLIT.LCMP2 = dutycalc(duty);
+		PORTD.DIR |= PD2;
 	}
 	if (ch == 3){
-		TCA0.SPLIT.HCMP2 = dutycalc(duty);
-		PORTA.DIR |= PIN5_bm;
+		TCA0.SPLIT.HCMP0 = dutycalc(duty);
+		PORTD.DIR |= PD3;
 	}
 	if (ch == 4){
 		TCA1.SPLIT.LCMP2 = dutycalc(duty);
-		PORTB.DIR |= PIN2_bm;
+		PORTB.DIR |= PB2;
 	}
 	if (ch == 5){
 		TCA1.SPLIT.HCMP0 = dutycalc(duty);
-		PORTB.DIR |= PIN3_bm;
+		PORTB.DIR |= PB3;
 	}
 	if (ch == 6){
 		
 		TCA1.SPLIT.HCMP1 = dutycalc(duty);
-		PORTB.DIR |= PIN4_bm;
+		PORTB.DIR |= PB4;
 	}
 	if (ch == 7){
 		TCA1.SPLIT.HCMP2 = dutycalc(duty);
-		PORTB.DIR |= PIN5_bm;
+		PORTB.DIR |= PB5;
 	}
 
 
@@ -103,7 +103,7 @@ uint32_t Read_Tacho(char ch){
 	if(tacho_val == 0){
 		rpm = 0;
 		}else {
-		rpm = (1600000*60)/(tacho_val*2); //Calculates RPM from freqency
+		rpm = ((F_CPU*60)/(tacho_val*2)); //Calculates RPM from freqency
 	}
 	TCB0.CCMP = 0x0000; //Resets the compare value
 	return rpm;
@@ -115,12 +115,12 @@ void PWM_init(){
 }
 
 void TCA0_init(){
-	PORTMUX.TCAROUTEA |= PORTMUX_TCA0_PORTA_gc;
+	PORTMUX.TCAROUTEA |= PORTMUX_TCA0_PORTD_gc; //CHANGE ___________________________
 	TCA0.SPLIT.CTRLD = TCA_SPLIT_SPLITM_bm;	//Enable splitmode
 	TCA0.SPLIT.HPER = 0xFF; //Set period Lowbits
 	TCA0.SPLIT.LPER = 0xFF; //Set period Highbits
 	TCA0.SPLIT.CTRLA = TCA_SPLIT_ENABLE_bm | TCA_SPLIT_CLKSEL_DIV16_gc; //Enable clock and set prescaler (crystal clk/16)
-	TCA0.SPLIT.CTRLB = TCA_SPLIT_LCMP2EN_bm;	//Enable low compare bits
+	TCA0.SPLIT.CTRLB = TCA_SPLIT_LCMP0EN_bm | TCA_SPLIT_LCMP1EN_bm | TCA_SPLIT_LCMP2EN_bm;	//Enable low compare bits
 	TCA0.SPLIT.CTRLB |= TCA_SPLIT_HCMP0EN_bm | TCA_SPLIT_HCMP1EN_bm | TCA_SPLIT_HCMP2EN_bm; //Enable High compare bits
 }
 

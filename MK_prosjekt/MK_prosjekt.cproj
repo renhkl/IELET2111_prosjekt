@@ -40,6 +40,22 @@
         </dependencies>
       </framework-data>
     </AsfFrameworkConfig>
+    <avrtool>com.atmel.avrdbg.tool.nedbg</avrtool>
+    <avrtoolserialnumber>MCHP3372031800001409</avrtoolserialnumber>
+    <avrdeviceexpectedsignature>0x1E970C</avrdeviceexpectedsignature>
+    <avrtoolinterface>UPDI</avrtoolinterface>
+    <com_atmel_avrdbg_tool_nedbg>
+      <ToolOptions>
+        <InterfaceProperties>
+          <UpdiClock>750000</UpdiClock>
+        </InterfaceProperties>
+        <InterfaceName>UPDI</InterfaceName>
+      </ToolOptions>
+      <ToolType>com.atmel.avrdbg.tool.nedbg</ToolType>
+      <ToolNumber>MCHP3372031800001409</ToolNumber>
+      <ToolName>nEDBG</ToolName>
+    </com_atmel_avrdbg_tool_nedbg>
+    <avrtoolinterfaceclock>750000</avrtoolinterfaceclock>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <ToolchainSettings>
@@ -105,11 +121,13 @@
         <avrgcc.compiler.optimization.AllocateBytesNeededForEnum>True</avrgcc.compiler.optimization.AllocateBytesNeededForEnum>
         <avrgcc.compiler.optimization.DebugLevel>Default (-g2)</avrgcc.compiler.optimization.DebugLevel>
         <avrgcc.compiler.warnings.AllWarnings>True</avrgcc.compiler.warnings.AllWarnings>
+        <avrgcc.linker.general.UseVprintfLibrary>True</avrgcc.linker.general.UseVprintfLibrary>
         <avrgcc.linker.libraries.Libraries>
           <ListValues>
             <Value>libm</Value>
           </ListValues>
         </avrgcc.linker.libraries.Libraries>
+        <avrgcc.linker.miscellaneous.LinkerFlags>-Wl,-u,vfscanf -lscanf_flt -lm -Wl,-u,vfprintf,-lprintf_flt,-lm</avrgcc.linker.miscellaneous.LinkerFlags>
         <avrgcc.assembler.general.IncludePaths>
           <ListValues>
             <Value>%24(PackRepoDir)\atmel\AVR-Dx_DFP\1.6.76\include\</Value>
@@ -126,10 +144,22 @@
     <Compile Include="AVR_Analog_RW.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="myEEPROM.c">
+    <Compile Include="SystemRTCandClk.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="myEEPROM.h">
+    <Compile Include="SystemRTCandClk.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="TWI.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="TWI.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="EEPROM.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="EEPROM.h">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="UARTplus.c">

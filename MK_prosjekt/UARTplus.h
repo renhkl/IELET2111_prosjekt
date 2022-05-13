@@ -11,18 +11,10 @@
 
 
 
+#include "SystemRTCandClk.h"
 
 
-#endif /* INCFILE1_H_ */
 
-#include <avr/io.h>
-#define F_CPU 4000000UL
-#include <util/delay.h>
-#include <stdio.h>
-#include <string.h>
-
-#include "AVR_Analog_RW.h"
-#include "myEEPROM.h"
 
 #define UART_bps 9600L //Define the UART bit per second, up to 57600
 
@@ -61,8 +53,9 @@
 #define TRUE 1
 
 //Prototypes
-void Osc_init(void);
-void UART3_init(void);
+//Initialization
+void UART3_init(long bps);
+
 
 //General UART functions
 void UART_Echo(char recvbyte );
@@ -74,6 +67,8 @@ void UART_SendChar(char CharToSend);
 void UART_SendBuffer(void);
 void UART_NewLine(void);
 void CharInBUF(char incominchar);
+
+//Tacho menu
 void UART_TitleAll(void);
 void UART_Row(char row,char numofsamples);
 void UART_ReadChannel(char ch);
@@ -84,24 +79,44 @@ void Ringbuffer_Reset(void);
 char UART_getRxBufferChar(void);
 char ProcessWord(void);
 char SearchForCommand(void);
-int UART_CheckFanInput(char digits);
-int UART_DigitsCheck(void);
-int UART_FanSpeedSet(void);
 
 //ALL fans on/off
 void AllON(void);
 void AllOFF(void);
 
-int Tacho_filter(char ch);
-int NumCheck(int num);
-
-
-void ISR_Func(void);
-void UART_MENU(void);
-
-void Buffer_init(void);
-
-void TxBuffer_StringWrite(char* buf, char* str);
+//UART write functions
+void TxBuffer_StringWrite(char* str);
 void TxBuffer_IntWrite(char* buf, int data);
 
+
+//Menu
+void UART_MENU(void);
+void UART_HelpMenu(void);
+void UART_WriteTrendData(void);
+
+
+//Menu functions
 void EchoToggle(void);
+int Tacho_filter(char ch);
+int NumCheck(int num);
+int UART_CheckFanInput(char digits);
+int UART_DigitsCheck(void);
+int UART_FanSpeedSet(void);
+uint8_t LengthofInt(uint32_t tacho);
+
+//EEPROM
+void EEPROM_ReadAll(void);
+void ResetEEPROM(void);
+void EEPROM_FaultDetect(void);
+void EEPROM_UpdateAll(void);
+void EEPROM_SaveFanStatus(void);
+
+//Interrupt function
+void UART_ISR(void);
+
+
+
+
+#endif /* INCFILE1_H_ */
+
+
