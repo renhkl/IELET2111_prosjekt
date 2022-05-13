@@ -222,6 +222,8 @@ void EEPROM_SaveFanStatus(void){
 	
 	EEPROM_ReadAll();
 	
+	EEPROM_CalcValue();
+	
 	EEPROM_FaultDetect();
 	
 	EEPROM_UpdateAll();
