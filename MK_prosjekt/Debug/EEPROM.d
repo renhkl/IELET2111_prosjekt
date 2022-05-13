@@ -1,5 +1,4 @@
-AVR_Analog_RW.d AVR_Analog_RW.o: .././AVR_Analog_RW.c \
- .././AVR_Analog_RW.h .././SystemRTCandClk.h \
+EEPROM.d EEPROM.o: .././EEPROM.c .././EEPROM.h .././SystemRTCandClk.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\io.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\sfr_defs.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\inttypes.h \
@@ -22,9 +21,9 @@ AVR_Analog_RW.d AVR_Analog_RW.o: .././AVR_Analog_RW.c \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\math.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\avr\eeprom.h \
  c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\include\string.h \
- .././UARTplus.h .././TWI.h .././EEPROM.h
+ .././UARTplus.h .././AVR_Analog_RW.h .././TWI.h
 
-.././AVR_Analog_RW.h:
+.././EEPROM.h:
 
 .././SystemRTCandClk.h:
 
@@ -74,6 +73,6 @@ c:\program\ files\ (x86)\atmel\studio\7.0\toolchain\avr8\avr8-gnu-toolchain\avr\
 
 .././UARTplus.h:
 
-.././TWI.h:
+.././AVR_Analog_RW.h:
 
-.././EEPROM.h:
+.././TWI.h:

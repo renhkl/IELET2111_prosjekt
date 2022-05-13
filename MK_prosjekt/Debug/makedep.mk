@@ -4,7 +4,11 @@
 
 AVR_Analog_RW.c
 
-myEEPROM.c
+SystemRTCandClk.c
+
+TWI.c
+
+EEPROM.c
 
 UARTplus.c
 
