@@ -3,11 +3,10 @@
 Koden er laget for mikrokontrolleren AVR128DB48. 
 IDE-en som er brukt er Microchip studio 
 
-PWM:
-- (main.c)
+Mikrokontrollerprosjektet
 
-MK-prosjekt:
-- UART-menyen (main.c)
+Hovedkoden
+- Styring av vifter og UART-meny (main.c)
 
 Inneholder bibliotekene
 - SystemRTCandClk
